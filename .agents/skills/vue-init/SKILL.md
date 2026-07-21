@@ -31,9 +31,9 @@ Use this skill when:
 - Wait for user confirmation.
 
 ### Step 3: Clone Boilerplate
-- Clone the boilerplate into the target path using the `vue` branch:
+- Clone the boilerplate into the target path:
   ```bash
-  git clone --branch vue https://github.com/reshap0318/boilerplate.git <target-path>
+  git clone https://github.com/reshap0318/boilerplate-vue.git <target-path>
   ```
 - If cloning into a subfolder, ensure the directory exists first.
 
