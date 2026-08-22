@@ -68,7 +68,8 @@ export function useCrud<
       return indexData.value.items
     } catch (error: any) {
       console.error(`Failed to fetch ${entityName}s`, error)
-      swal.error('Gagal', `Gagal memuat daftar ${entityName}.`)
+      const message = error?.response?.data?.message || `Gagal memuat daftar ${entityName}.`
+      swal.error('Gagal', message)
       return []
     } finally {
       loading.value.Index = false
@@ -89,10 +90,11 @@ export function useCrud<
   async function create() {
     loading.value.Form = true
     try {
-      await post(endpoint, form)
+      const { data } = await post<IApiResponse<TEntity>>(endpoint, form)
       swal.success(
         'Berhasil',
-        `${entityName.charAt(0).toUpperCase() + entityName.slice(1)} berhasil dibuat.`,
+        data?.message ||
+          `${entityName.charAt(0).toUpperCase() + entityName.slice(1)} berhasil dibuat.`,
       )
       await fetchAll()
     } catch (error: any) {
@@ -107,10 +109,11 @@ export function useCrud<
   async function update(id: number | string) {
     loading.value.Form = true
     try {
-      await put(`${endpoint}/${id}`, form)
+      const { data } = await put<IApiResponse<TEntity>>(`${endpoint}/${id}`, form)
       swal.success(
         'Berhasil',
-        `${entityName.charAt(0).toUpperCase() + entityName.slice(1)} berhasil diperbarui.`,
+        data?.message ||
+          `${entityName.charAt(0).toUpperCase() + entityName.slice(1)} berhasil diperbarui.`,
       )
       await fetchAll()
     } catch (error: any) {
@@ -134,10 +137,11 @@ export function useCrud<
 
     loading.value.Delete = true
     try {
-      await del(`${endpoint}/${id}`)
+      const { data } = await del<IApiResponse<null>>(`${endpoint}/${id}`)
       swal.success(
         'Berhasil',
-        `${entityName.charAt(0).toUpperCase() + entityName.slice(1)} berhasil dihapus.`,
+        data?.message ||
+          `${entityName.charAt(0).toUpperCase() + entityName.slice(1)} berhasil dihapus.`,
       )
       await fetchAll()
     } catch (error: any) {
