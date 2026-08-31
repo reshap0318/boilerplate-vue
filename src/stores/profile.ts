@@ -66,7 +66,6 @@ export const useProfileStore = defineStore('profile', () => {
       }
     } catch (error: any) {
       console.error('Failed to fetch profile', error)
-      swal.error('Gagal', 'Gagal memuat data profile.')
     } finally {
       loading.value.Fetch = false
     }
@@ -110,8 +109,6 @@ export const useProfileStore = defineStore('profile', () => {
 
       swal.success('Berhasil', 'Profile berhasil diperbarui.')
     } catch (error: any) {
-      const message = error?.response?.data?.message || 'Gagal memperbarui profile.'
-      swal.error('Gagal', message)
       throw error
     } finally {
       loading.value.Update = false

@@ -30,9 +30,8 @@ async function handleForgotPassword() {
     await authStore.forgotPassword(formData.value.email)
     swal.success('Berhasil', 'Tautan untuk mengatur ulang kata sandi telah dikirim ke email Anda.')
     router.push('/login')
-  } catch (error: any) {
-    const message = error?.response?.data?.message || 'Gagal mengirim email reset password.'
-    swal.error('Gagal', message)
+  } catch {
+    // handled globally by axios interceptor
   } finally {
     isLoading.value = false
   }

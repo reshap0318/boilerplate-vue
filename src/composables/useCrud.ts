@@ -68,8 +68,6 @@ export function useCrud<
       return indexData.value.items
     } catch (error: any) {
       console.error(`Failed to fetch ${entityName}s`, error)
-      const message = error?.response?.data?.message || `Gagal memuat daftar ${entityName}.`
-      swal.error('Gagal', message)
       return []
     } finally {
       loading.value.Index = false
@@ -98,8 +96,6 @@ export function useCrud<
       )
       await fetchAll()
     } catch (error: any) {
-      const message = error?.response?.data?.message || `Gagal membuat ${entityName}.`
-      swal.error('Gagal', message)
       throw error
     } finally {
       loading.value.Form = false
@@ -117,8 +113,6 @@ export function useCrud<
       )
       await fetchAll()
     } catch (error: any) {
-      const message = error?.response?.data?.message || `Gagal memperbarui ${entityName}.`
-      swal.error('Gagal', message)
       throw error
     } finally {
       loading.value.Form = false
@@ -145,8 +139,6 @@ export function useCrud<
       )
       await fetchAll()
     } catch (error: any) {
-      const message = error?.response?.data?.message || `Gagal menghapus ${entityName}.`
-      swal.error('Gagal', message)
       throw error
     } finally {
       loading.value.Delete = false
