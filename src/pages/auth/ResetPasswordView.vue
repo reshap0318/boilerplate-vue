@@ -52,9 +52,8 @@ async function handleResetPassword() {
     await authStore.resetPassword(token.value, formData.value.password)
     swal.success('Berhasil', 'Kata sandi Anda telah berhasil diubah. Silakan login kembali.')
     router.push('/login')
-  } catch (error: any) {
-    const message = error?.response?.data?.message || 'Gagal mengubah kata sandi.'
-    swal.error('Gagal', message)
+  } catch {
+    // handled globally by axios interceptor
   } finally {
     isLoading.value = false
   }

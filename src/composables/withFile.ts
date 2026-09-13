@@ -73,8 +73,6 @@ export function withFile<
       )
       await crud.fetchAll()
     } catch (error: any) {
-      const message = error?.response?.data?.message || `Gagal membuat ${crud.entityName}.`
-      swal.error('Gagal', message)
       throw error
     } finally {
       crud.loading.value.Form = false
@@ -92,8 +90,6 @@ export function withFile<
       )
       await crud.fetchAll()
     } catch (error: any) {
-      const message = error?.response?.data?.message || `Gagal memperbarui ${crud.entityName}.`
-      swal.error('Gagal', message)
       throw error
     } finally {
       crud.loading.value.Form = false

@@ -8,7 +8,6 @@ import {
   type IApiMetadata,
   ApiMetadataDefaults,
 } from '@/plugins/axios'
-import swal from '@/plugins/swal'
 import { formatTimeForHuman } from '@/helpers/date'
 
 export interface INotification {
@@ -161,8 +160,7 @@ export const useNotificationStore = defineStore('notification', () => {
       notifications.value = []
       unreadCount.value = Math.max(0, unreadCount.value - unreadBefore)
     } catch (error: any) {
-      const message = error?.response?.data?.message || 'Gagal menghapus semua notifikasi.'
-      swal.error('Gagal', message)
+      console.error('Failed to delete all notifications', error)
     } finally {
       loading.value.Delete = false
     }
@@ -179,8 +177,7 @@ export const useNotificationStore = defineStore('notification', () => {
         unreadCount.value = Math.max(0, unreadCount.value - 1)
       }
     } catch (error: any) {
-      const message = error?.response?.data?.message || 'Gagal menghapus notifikasi.'
-      swal.error('Gagal', message)
+      console.error('Failed to delete notification', error)
     } finally {
       loading.value.Delete = false
     }

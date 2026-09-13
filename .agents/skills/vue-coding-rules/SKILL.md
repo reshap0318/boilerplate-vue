@@ -193,17 +193,29 @@ interface IApiResponse<TData> {
 
 ### 3. Error Handling
 
-The axios interceptor handles all standard HTTP errors (400, 401, 403, 404, 409, 422, 500, etc.) automatically via `swal`. Do **not** duplicate error handling for these cases.
+The axios interceptor handles all standard HTTP errors (400, 401, 403, 404, 409, 422, 500, etc.) automatically via `swal`. **Default to the global interceptor — do not add a custom `swal.error` in catch blocks.** Only add custom error handling when the user explicitly asks for a specific message or action.
 
-**Default — let interceptor handle it (component `handleSubmit`):**
+**Default — always start here, for every store method and component `handleSubmit`:**
 ```typescript
 try {
   await store.create()
   close()
 } catch {} // interceptor already showed the error
 ```
+For methods that need to react to failure without a custom message (e.g. return `[]`, stop a loading flag), catch and `console.error` only — do not call `swal.error`:
+```typescript
+catch (error: any) {
+  console.error('Failed to fetch entities', error)
+  return []
+}
+```
 
-**Custom — only when you need a specific message or action beyond what the interceptor does:**
+**Custom — ONLY when the user explicitly requests a specific message or action beyond the interceptor's default:**
+
+The axios call MUST pass `{ hideError: true }` (see `stores/auth.ts` → `login()`), otherwise the interceptor's swal fires too and the user sees a duplicate popup:
+```typescript
+await post('/auth/login', payload, { hideError: true })
+```
 ```typescript
 catch (error: any) {
   const message = error?.response?.data?.message || 'Default error message.'
@@ -211,7 +223,6 @@ catch (error: any) {
   throw error
 }
 ```
-Use custom catch in store methods for non-CRUD API calls, or when the default interceptor message is not descriptive enough for the context.
 
 ---
 
