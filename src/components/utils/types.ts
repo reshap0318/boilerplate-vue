@@ -215,6 +215,21 @@ export interface UiSkeletonProps {
   classes?: UiSkeletonClasses
 }
 
+// FormToggle types
+export interface FormToggleClasses {
+  wrapper?: string
+  track?: string
+  label?: string
+}
+
+export interface FormToggleProps {
+  modelValue: boolean
+  label?: string
+  size?: 'sm' | 'md'
+  disabled?: boolean
+  classes?: FormToggleClasses
+}
+
 export type TSortOrder = 'asc' | 'desc' | 'none'
 
 // UiTable types

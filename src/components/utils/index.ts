@@ -12,6 +12,7 @@ export { default as FormFile } from './FormFile.vue'
 export { default as FormInput } from './FormInput.vue'
 export { default as FormPassword } from './FormPassword.vue'
 export { default as FormSelect } from './FormSelect.vue'
+export { default as FormToggle } from './FormToggle.vue'
 
 export type {
   UiButtonProps,
@@ -39,6 +40,8 @@ export type {
   TSkeletonVariant,
   UiSkeletonClasses,
   UiSkeletonProps,
+  FormToggleClasses,
+  FormToggleProps,
   TSortOrder,
   TTableColumn,
   TTableRow,
