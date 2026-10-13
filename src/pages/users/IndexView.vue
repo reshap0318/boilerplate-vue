@@ -156,7 +156,7 @@ onMounted(() => {
 
             <!-- Joined Date & Roles -->
             <div class="w-full space-y-2 text-xs">
-              <div class="flex items-center justify-center gap-1.5 text-gray-500">
+              <div class="flex items-center gap-1.5 text-gray-500">
                 <div
                   class="flex items-center justify-center w-6 h-6 rounded-md bg-cyan-100 text-cyan-600 shrink-0"
                 >
@@ -165,10 +165,7 @@ onMounted(() => {
                 <span>{{ formatDate(user.created_at) }}</span>
               </div>
 
-              <div
-                v-if="user.roles?.length"
-                class="flex items-center justify-center gap-1.5 flex-wrap"
-              >
+              <div v-if="user.roles?.length" class="flex items-center gap-1.5 flex-wrap">
                 <div
                   class="flex items-center justify-center w-6 h-6 rounded-md bg-cyan-100 text-cyan-600 shrink-0"
                 >
