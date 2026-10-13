@@ -1,13 +1,18 @@
 <script setup lang="ts">
 import SidebarMenu from '@/components/layouts/SidebarMenu.vue'
 import TopBar from '@/components/layouts/TopBar.vue'
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { PhList, PhHouse, PhShieldCheck, PhUsers } from '@phosphor-icons/vue'
 import type { IMenuItem } from '@/components/layouts/SidebarMenu.vue'
 import { usePermission } from '@/composables'
+import storage from '@/helpers/storage'
+
+const SIDEBAR_COLLAPSED_KEY = 'sidebarCollapsed'
 
 const sidebarOpen = ref(false)
-const sidebarCollapsed = ref(false)
+const sidebarCollapsed = ref(storage.getItem<boolean>(SIDEBAR_COLLAPSED_KEY, false) ?? false)
+
+watch(sidebarCollapsed, (value) => storage.setItem(SIDEBAR_COLLAPSED_KEY, value))
 const appName = import.meta.env.VITE_APP_NAME || 'Admin'
 
 const { hasAnyPermission } = usePermission()

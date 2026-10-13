@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { UiModal, FormInput, UiButton } from '@/components/utils'
+import { UiModal, FormInput, UiButton, FormToggle } from '@/components/utils'
 import { computed, ref, onMounted } from 'vue'
 import useVuelidate from '@vuelidate/core'
 import { useRoleStore } from '@/stores/role'
@@ -127,19 +127,14 @@ defineExpose({ show, close })
                   {{ group }}
                 </h4>
                 <div class="grid grid-cols-2 gap-x-4 gap-y-1">
-                  <label
+                  <FormToggle
                     v-for="perm in perms"
                     :key="perm.id"
-                    class="flex items-center gap-2 cursor-pointer"
-                  >
-                    <input
-                      type="checkbox"
-                      :checked="roleStore.form.permissions.includes(perm.id)"
-                      class="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                      @change="togglePermission(perm.id)"
-                    />
-                    <span class="text-sm text-gray-700">{{ perm.name }}</span>
-                  </label>
+                    :model-value="roleStore.form.permissions.includes(perm.id)"
+                    :label="perm.name"
+                    size="sm"
+                    @update:model-value="togglePermission(perm.id)"
+                  />
                 </div>
               </div>
               <p v-if="allPermissions.length === 0" class="p-3 text-sm text-gray-400">

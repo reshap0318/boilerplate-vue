@@ -47,6 +47,7 @@ export function useCrud<
       const initial = initialForm[k]
       ;(form as any)[k] = Array.isArray(initial) ? [...initial] : initial
     })
+    ;(form as any).id = undefined
   }
 
   function getCollection(): TEntity[] {
