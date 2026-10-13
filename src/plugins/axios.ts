@@ -29,7 +29,7 @@ export interface IApiMetadata {
 }
 
 export interface IApiResponse<TData> {
-  code: number
+  code: string
   message: string
   data: TData
   metadata?: IApiMetadata

@@ -177,7 +177,7 @@ interface IApiMetadata {
   total_pages: number
 }
 interface IApiResponse<TData> {
-  code: number
+  code: string
   message: string
   data: TData
   metadata?: IApiMetadata
