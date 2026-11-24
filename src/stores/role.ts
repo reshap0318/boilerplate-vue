@@ -1,8 +1,8 @@
 import { defineStore } from 'pinia'
-import { required, minLength } from '@vuelidate/validators'
-import { get, type IApiResponse } from '@/plugins/axios'
+import { minLength, required } from '@vuelidate/validators'
 import { useCrud } from '@/composables/useCrud'
-import { IPermission } from './permission'
+import { get, type IApiResponse } from '@/plugins/axios'
+import type { IPermission } from './permission'
 
 export interface IRole {
   id: number
@@ -29,16 +29,6 @@ export const useRoleStore = defineStore('role', () => {
     },
   })
 
-  async function fetchAllRoles(): Promise<IRole[]> {
-    try {
-      const { data } = await get<IApiResponse<IRole[]>>('/roles')
-      return data.data || []
-    } catch (error: any) {
-      console.error('Failed to fetch all roles', error)
-      return []
-    }
-  }
-
   async function fetchRolePermissions(id: number): Promise<IPermission[]> {
     try {
       const { data } = await get<IApiResponse<IPermission[]>>(`/roles/${id}/permissions`)
@@ -51,7 +41,6 @@ export const useRoleStore = defineStore('role', () => {
 
   return {
     ...crud,
-    fetchAllRoles,
     fetchRolePermissions,
   }
 })

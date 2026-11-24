@@ -1,41 +1,17 @@
 <script setup lang="ts">
-import { UiCard, UiButton, UiPagination, UiEmptyState, UiSkeleton } from '@/components/utils'
-import FormModal from './FormModal.vue'
-import { ref, onMounted } from 'vue'
-import { useUserStore } from '@/stores/user'
-import type { IUser } from '@/stores/user'
+import { onMounted, ref } from 'vue'
+import { PhCalendar, PhCrown, PhEnvelope, PhPencil, PhPlus, PhTrash } from '@phosphor-icons/vue'
+import { UiButton, UiCard, UiEmptyState, UiPagination, UiSkeleton } from '@/components/utils'
 import { usePermission } from '@/composables'
-import { PhPlus, PhPencil, PhTrash, PhEnvelope, PhCalendar, PhCrown } from '@phosphor-icons/vue'
+import { getAvatarColor, getInitials } from '@/helpers/avatar'
+import { formatDate } from '@/helpers/date'
+import { useUserStore } from '@/stores'
+import FormModal from './FormModal.vue'
+import type { IUser } from '@/stores'
 
 const userStore = useUserStore()
 const { hasAllPermissions } = usePermission()
 const formModalRef = ref<InstanceType<typeof FormModal> | null>(null)
-
-const colorPalette = [
-  'bg-blue-500',
-  'bg-emerald-500',
-  'bg-violet-500',
-  'bg-amber-500',
-  'bg-rose-500',
-  'bg-cyan-500',
-  'bg-indigo-500',
-  'bg-teal-500',
-]
-
-function getInitials(name: string): string {
-  const words = name.trim().split(/\s+/)
-  if (words.length === 1) return words[0].charAt(0).toUpperCase()
-  return (words[0].charAt(0) + words[words.length - 1].charAt(0)).toUpperCase()
-}
-
-function getAvatarBg(index: number): string {
-  return colorPalette[index % colorPalette.length]
-}
-
-function formatDate(dateString: string): string {
-  const date = new Date(dateString)
-  return date.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })
-}
 
 function openCreate() {
   formModalRef.value?.show()
@@ -133,7 +109,7 @@ onMounted(() => {
                 v-else
                 :class="[
                   'flex items-center justify-center w-full h-full text-lg font-bold',
-                  getAvatarBg(index),
+                  getAvatarColor(index),
                 ]"
               >
                 <span class="text-white">{{ getInitials(user.name) }}</span>

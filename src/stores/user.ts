@@ -1,8 +1,9 @@
 import { defineStore } from 'pinia'
 import { required, email, minLength, helpers, requiredIf } from '@vuelidate/validators'
-import { IRole } from './role'
-import { IPermission } from './permission'
-import { useCrud, withFile } from '@/composables'
+import { useCrud } from '@/composables/useCrud'
+import { withFile } from '@/composables/withFile'
+import type { IPermission } from './permission'
+import type { IRole } from './role'
 
 export interface IUser {
   id: number

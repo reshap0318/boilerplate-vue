@@ -35,7 +35,9 @@ function isActive(to: string): boolean {
  */
 function isGroupActive(item: IMenuItem): boolean {
   if (!item.children) return false
-  return item.children.some((child) => (child.to ? isActive(child.to) : false) || isGroupActive(child))
+  return item.children.some(
+    (child) => (child.to ? isActive(child.to) : false) || isGroupActive(child),
+  )
 }
 
 function isGroupExpanded(item: IMenuItem, depth: number): boolean {

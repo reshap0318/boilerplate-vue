@@ -1,16 +1,17 @@
 <script setup lang="ts">
-import { UiButton, UiModal, FormInput, FormPassword, FormAvatar } from '@/components/utils'
-
-import { ref, onMounted } from 'vue'
-import useVuelidate from '@vuelidate/core'
+import { onMounted, ref } from 'vue'
 import {
-  PhUser,
-  PhEnvelope,
   PhCalendar,
-  PhPencilSimple,
+  PhEnvelope,
   PhLock,
+  PhPencilSimple,
   PhUploadSimple,
+  PhUser,
 } from '@phosphor-icons/vue'
+import useVuelidate from '@vuelidate/core'
+import { FormAvatar, FormInput, FormPassword, UiButton, UiModal } from '@/components/utils'
+import { getInitials } from '@/helpers/avatar'
+import { formatDate } from '@/helpers/date'
 import { useProfileStore } from '@/stores'
 
 const profileStore = useProfileStore()
@@ -82,23 +83,6 @@ async function handleChangePassword() {
   } catch {
     // error handled in store
   }
-}
-
-function formatDate(dateStr: string): string {
-  return new Date(dateStr).toLocaleDateString('id-ID', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-  })
-}
-
-function getInitials(name: string): string {
-  return name
-    .split(' ')
-    .map((w) => w[0])
-    .join('')
-    .toUpperCase()
-    .slice(0, 2)
 }
 </script>
 
@@ -194,7 +178,7 @@ function getInitials(name: string): string {
                 <div>
                   <p class="text-xs text-gray-500 uppercase tracking-wide">Bergabung</p>
                   <p class="text-sm font-semibold text-gray-900">
-                    {{ formatDate(profileStore.profile.created_at) }}
+                    {{ formatDate(profileStore.profile.created_at, 'long') }}
                   </p>
                 </div>
               </div>
@@ -273,7 +257,11 @@ function getInitials(name: string): string {
 
       <template #footer>
         <UiButton variant="secondary" @click="showEditModal = false"> Batal </UiButton>
-        <UiButton variant="primary" :loading="profileStore.loading.Update" @click="handleUpdateProfile">
+        <UiButton
+          variant="primary"
+          :loading="profileStore.loading.Update"
+          @click="handleUpdateProfile"
+        >
           <template #icon><PhUploadSimple :size="16" weight="regular" /></template>
           Simpan
         </UiButton>
@@ -302,7 +290,11 @@ function getInitials(name: string): string {
 
       <template #footer>
         <UiButton variant="secondary" @click="showPasswordModal = false"> Batal </UiButton>
-        <UiButton variant="primary" :loading="profileStore.loading.Update" @click="handleChangePassword">
+        <UiButton
+          variant="primary"
+          :loading="profileStore.loading.Update"
+          @click="handleChangePassword"
+        >
           <template #icon><PhLock :size="16" weight="regular" /></template>
           Ubah Password
         </UiButton>

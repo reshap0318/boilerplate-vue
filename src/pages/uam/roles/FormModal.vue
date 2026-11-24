@@ -1,11 +1,10 @@
 <script setup lang="ts">
-import { UiModal, FormInput, UiButton, FormToggle } from '@/components/utils'
-import { computed, ref, onMounted } from 'vue'
+import { computed, ref } from 'vue'
 import useVuelidate from '@vuelidate/core'
-import { useRoleStore } from '@/stores/role'
-import { usePermissionStore } from '@/stores/permission'
-import type { IPermission } from '@/stores/permission'
-import { useFormError } from '@/composables/useFormError'
+import { FormInput, FormToggle, UiButton, UiModal } from '@/components/utils'
+import { useFormError } from '@/composables'
+import { usePermissionStore, useRoleStore } from '@/stores'
+import type { IPermission } from '@/stores'
 
 const roleStore = useRoleStore()
 const permissionStore = usePermissionStore()
@@ -14,12 +13,10 @@ const v$ = useVuelidate(roleStore.formRules, roleStore.form)
 
 const isVisible = ref(false)
 const isEdit = computed(() => !!roleStore.form.id)
-const allPermissions = ref<IPermission[]>([])
-const permissionsLoading = ref(false)
 
 const groupedPermissions = computed(() => {
   const groups: Record<string, IPermission[]> = {}
-  for (const perm of allPermissions.value) {
+  for (const perm of permissionStore.lookup.items) {
     const group = perm.name.includes('.') ? perm.name.split('.')[0] : 'others'
     if (!groups[group]) groups[group] = []
     groups[group].push(perm)
@@ -27,22 +24,13 @@ const groupedPermissions = computed(() => {
   return groups
 })
 
-async function loadPermissions() {
-  if (allPermissions.value.length > 0) return
-  permissionsLoading.value = true
-  try {
-    allPermissions.value = await permissionStore.fetchAllPermissions()
-  } finally {
-    permissionsLoading.value = false
-  }
-}
-
 async function show(data?: {
   id?: number
   name: string
   description: string
   permissions?: { id: number }[]
 }) {
+  permissionStore.lookup.load() // cached for the whole session after the first open
   if (data) {
     roleStore.form.id = data.id
     roleStore.form.name = data.name
@@ -71,7 +59,9 @@ async function handleSubmit() {
       await roleStore.create()
     }
     close()
-  } catch {}
+  } catch {
+    // error already shown by the axios interceptor; keep the modal open
+  }
 }
 
 function togglePermission(id: number) {
@@ -82,10 +72,6 @@ function togglePermission(id: number) {
     roleStore.form.permissions.splice(idx, 1)
   }
 }
-
-onMounted(() => {
-  loadPermissions()
-})
 
 defineExpose({ show, close })
 </script>
@@ -118,7 +104,10 @@ defineExpose({ show, close })
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-2">Permissions</label>
           <div class="max-h-48 overflow-y-auto border border-gray-200 rounded-lg scrollbar-thin">
-            <div v-if="permissionsLoading" class="p-3 text-sm text-gray-400 text-center">
+            <div
+              v-if="permissionStore.lookup.loading"
+              class="p-3 text-sm text-gray-400 text-center"
+            >
               Memuat permissions...
             </div>
             <template v-else>
@@ -137,7 +126,7 @@ defineExpose({ show, close })
                   />
                 </div>
               </div>
-              <p v-if="allPermissions.length === 0" class="p-3 text-sm text-gray-400">
+              <p v-if="permissionStore.lookup.items.length === 0" class="p-3 text-sm text-gray-400">
                 Belum ada permission.
               </p>
             </template>

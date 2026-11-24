@@ -1,4 +1,7 @@
 export { useCrud } from './useCrud'
 export type { UseCrudOptions } from './useCrud'
-export { withFile } from './withFile'
+export { useFormError } from './useFormError'
+export { useLookup } from './useLookup'
+export type { UseLookupOptions } from './useLookup'
 export { usePermission } from './usePermission'
+export { withFile } from './withFile'

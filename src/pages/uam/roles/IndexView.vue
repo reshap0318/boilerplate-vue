@@ -1,36 +1,16 @@
 <script setup lang="ts">
-import { UiCard, UiButton, UiPagination, UiEmptyState, UiSkeleton } from '@/components/utils'
-import FormModal from './FormModal.vue'
-import { ref, onMounted } from 'vue'
-import { useRoleStore } from '@/stores/role'
-import type { IRole } from '@/stores/role'
+import { onMounted, ref } from 'vue'
+import { PhPencil, PhPlus, PhTrash } from '@phosphor-icons/vue'
+import { UiButton, UiCard, UiEmptyState, UiPagination, UiSkeleton } from '@/components/utils'
 import { usePermission } from '@/composables'
-import { PhPlus, PhPencil, PhTrash } from '@phosphor-icons/vue'
+import { getAvatarColor, getInitials } from '@/helpers/avatar'
+import { useRoleStore } from '@/stores'
+import FormModal from './FormModal.vue'
+import type { IRole } from '@/stores'
 
 const roleStore = useRoleStore()
 const { hasAllPermissions } = usePermission()
 const formModalRef = ref<InstanceType<typeof FormModal> | null>(null)
-
-const avatarColors = [
-  'bg-blue-600',
-  'bg-emerald-600',
-  'bg-violet-600',
-  'bg-amber-600',
-  'bg-rose-600',
-  'bg-cyan-600',
-  'bg-indigo-600',
-  'bg-teal-600',
-]
-
-function getInitials(name: string): string {
-  const words = name.trim().split(/\s+/)
-  if (words.length === 1) return words[0].charAt(0).toUpperCase()
-  return (words[0].charAt(0) + words[words.length - 1].charAt(0)).toUpperCase()
-}
-
-function getAvatarColor(index: number): string {
-  return avatarColors[index % avatarColors.length]
-}
 
 function openCreate() {
   formModalRef.value?.show()

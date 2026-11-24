@@ -30,6 +30,7 @@ export type {
   FormPasswordClasses,
   FormPasswordProps,
   TSelectOption,
+  TSelectValue,
   FormSelectClasses,
   FormSelectProps,
   TFileItem,

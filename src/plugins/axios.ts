@@ -1,6 +1,5 @@
 declare module 'axios' {
   interface AxiosRequestConfig {
-    cancelPreviousRequests?: boolean
     hideError?: boolean
     hideError400?: boolean
     hideError401?: boolean
@@ -16,7 +15,12 @@ declare module 'axios' {
   }
 }
 
-import axios, { type AxiosInstance, type AxiosRequestConfig, type AxiosResponse } from 'axios'
+import axios, {
+  isCancel,
+  type AxiosInstance,
+  type AxiosRequestConfig,
+  type AxiosResponse,
+} from 'axios'
 import { useAuthStore } from '@/stores/auth'
 import { useFormError } from '@/composables/useFormError'
 import swal from './swal'
@@ -69,6 +73,11 @@ let isHandling401 = false
 api.interceptors.response.use(
   (response) => response,
   (error) => {
+    // Request aborted on purpose (newer request replaced it) — never show an error
+    if (isCancel(error)) {
+      return Promise.reject(error)
+    }
+
     const config = error.config
     const shouldHideAll = config?.hideError === true
 
@@ -236,5 +245,5 @@ const del = <T = unknown>(url: string, config?: AxiosRequestConfig): Promise<Axi
   return api.delete<T>(url, config)
 }
 
-export { get, post, put, patch, del }
+export { get, post, put, patch, del, isCancel }
 export default api

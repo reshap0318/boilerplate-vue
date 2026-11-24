@@ -1,6 +1,6 @@
 ---
 name: vue-coding-rules
-description: Vue Project coding rules and conventions — see references/ for code examples
+description: Coding rules for this Vue 3 + Pinia + TypeScript boilerplate. MUST be used whenever writing, editing or reviewing any file under src/ — .vue components, Pinia stores, composables (useCrud, withFile, useLookup), router, axios/API calls, Vuelidate forms, FormModal, FormSelect/dropdown options, permissions, Tailwind styling, barrel exports, import order. Also use when deciding whether a store should use useCrud, or how to load select options without redundant API calls. Triggers (EN/ID) - "buat store", "buat komponen", "tambah field", "select/dropdown", "modal form", "panggil API", "rapikan import", "review kode".
 ---
 
 ## When to use me
@@ -32,7 +32,7 @@ src/
 │   ├── directives/   # Custom directives
 │   ├── layouts/      # Layout components
 │   └── utils/        # UI components (UiButton, UiCard, etc)
-├── composables/      # Recomposition functions (useCrud, withFile)
+├── composables/      # useCrud, withFile, useLookup, usePermission, useFormError
 ├── helpers/          # Utility functions
 ├── layouts/          # Page layout wrappers
 ├── pages/            # Page/view components (route-level)
@@ -51,7 +51,9 @@ All examples are in `references/` folder:
 
 - `references/store-crud.ts` — Standard CRUD store with useCrud
 - `references/store-with-file.ts` — Store with file upload (withFile HOF)
-- `references/component.vue` — Component structure with script setup
+- `references/store-custom.ts` — Non-CRUD store (read-only list / singleton) + useLookup
+- `references/component.vue` — Component structure + import order
+- `references/form-modal.vue` — FormModal with cached select options + remote-search select
 - `references/types.ts` — Types file pattern (grouped by component)
 - `references/barrel.ts` — Barrel export patterns
 - `references/permission.ts` — Permission composable usage
@@ -73,6 +75,38 @@ All examples are in `references/` folder:
 | Stores          | singular, lowercase | `auth.ts`, `user.ts`, `role.ts`             |
 | Interfaces      | `I` prefix          | `IUser`, `IApiResponse`                     |
 | Type aliases    | `T` prefix          | `TLoadingKey`                               |
+
+---
+
+## Import Order
+
+**Every `.ts` file and `<script setup>` block uses this order** — no blank lines between groups. Within each group sort alphabetically by path; inside `{ }` sort names alphabetically.
+
+| # | Group | Example |
+|---|-------|---------|
+| 1 | Vue core: `vue`, `vue-router`, `pinia` (in that order) | `import { computed, ref } from 'vue'` |
+| 2 | Third-party packages | `@phosphor-icons/vue`, `@vuelidate/core`, `@vuelidate/validators`, `@vueform/multiselect` |
+| 3 | Internal `@/` aliases (alphabetical ⇒ components → composables → helpers → plugins → stores) | `import { UiButton } from '@/components/utils'` |
+| 4 | Relative `./` | `import FormModal from './FormModal.vue'` |
+| 5 | `import type` statements last (same order as 1–4) | `import type { IUser } from '@/stores'` |
+
+```typescript
+import { computed, onMounted, ref } from 'vue'
+import { PhPencil, PhPlus } from '@phosphor-icons/vue'
+import useVuelidate from '@vuelidate/core'
+import { FormInput, UiButton, UiModal } from '@/components/utils'
+import { useFormError, usePermission } from '@/composables'
+import { formatTimeForHuman } from '@/helpers/date'
+import swal from '@/plugins/swal'
+import { useRoleStore, useUserStore } from '@/stores'
+import FormModal from './FormModal.vue'
+import type { IUser } from '@/stores'
+```
+
+**Barrel vs direct path:**
+- In `pages/` and `components/` → import from barrels: `@/components/utils`, `@/composables`, `@/stores`. One import per barrel (merge them).
+- Inside `stores/`, `composables/`, `plugins/`, `helpers/` → import the **file directly** (`@/composables/useCrud`, `./role`) to avoid circular imports through barrels.
+- Type-only imports always use `import type` (or inline `type` in a mixed import: `import { get, type IApiResponse } from '@/plugins/axios'`). Never import an interface as a value (`import { IRole } from './role'` ❌).
 
 ---
 
@@ -124,9 +158,27 @@ See `references/types.ts` for full pattern.
 
 ## Pinia Store Rules
 
-### 1. Composable-First Pattern
+### 1. When to use `useCrud` — decide BEFORE writing the store
 
-All CRUD stores MUST use `useCrud` composable. See `references/store-crud.ts`.
+`useCrud` assumes a REST resource: `GET /x` (paginated), `GET /x/:id`, `POST /x`, `PUT /x/:id`, `DELETE /x/:id`, one `form` for create/edit, and a list page with pagination.
+
+| The feature is… | Use | Example in repo |
+|---|---|---|
+| List page + create/edit/delete of ONE resource | `useCrud` | `stores/role.ts` |
+| Same as above, form has file/image fields | `useCrud` + `withFile` | `stores/user.ts` |
+| CRUD resource + a few extra endpoints (`/roles/:id/permissions`, `/x/:id/approve`) | `useCrud` + extra functions in the same store, returned next to `...crud` | `stores/role.ts` → `fetchRolePermissions` |
+| Read-only list (no create/update/delete) | Custom store (no `useCrud`) | `stores/permission.ts` |
+| Singleton resource (`/me`, `/settings`) | Custom store | `stores/profile.ts` |
+| Feed / infinite scroll / counters / mark-as-read | Custom store | `stores/notification.ts` |
+| Auth / session | Custom store | `stores/auth.ts` |
+| Only needed as **options for a select** in another feature | `store.lookup` if the resource already has a `useCrud` store; otherwise `useLookup` inside a custom store | `roleStore.lookup`, `permissionStore.lookup` |
+
+**Rules of thumb:**
+- Don't force `useCrud` onto something without create/update/delete — you'd get a dead `form`/`create`/`remove` and a misleading API.
+- Don't hand-write list/create/update/delete in a store when `useCrud` fits — that's duplication.
+- Never add a `fetchAllXxx()` function to load dropdown options — every `useCrud` store already has `lookup` (see **API Call Rules**).
+
+See `references/store-crud.ts`, `references/store-with-file.ts`, `references/store-custom.ts`.
 
 ### 2. File Upload — use `withFile` HOF
 
@@ -200,8 +252,11 @@ The axios interceptor handles all standard HTTP errors (400, 401, 403, 404, 409,
 try {
   await store.create()
   close()
-} catch {} // interceptor already showed the error
+} catch {
+  // error already shown by the axios interceptor; keep the modal open
+}
 ```
+The comment inside `catch` is required — an empty `catch {}` fails ESLint (`no-empty`). In stores don't write `catch (e) { throw e }` (fails `no-useless-catch`) — use `try { … } finally { … }`.
 For methods that need to react to failure without a custom message (e.g. return `[]`, stop a loading flag), catch and `console.error` only — do not call `swal.error`:
 ```typescript
 catch (error: any) {
@@ -223,6 +278,53 @@ catch (error: any) {
   throw error
 }
 ```
+
+---
+
+### 4. API Call Rules — no redundant requests
+
+**Select / dropdown options (data from another resource):**
+
+| Dataset size | Pattern | How |
+|---|---|---|
+| Small (< ~200 rows: roles, permissions, categories, statuses) | **Load once, cache in store, search on client** | `store.lookup.load()` + `<FormSelect searchable :options>` |
+| Large / unbounded (users, products, locations) | **Server-side search** | `<FormSelect :options="(q) => store.lookup.search(q).then(toOptions)" :delay="300" :filter-results="false">` |
+
+- `lookup.load()` fetches ALL rows (the backend returns everything when `page_size` is omitted) **once**; later calls return the cache with no request, and concurrent calls share one request.
+- Call `lookup.load()` **inside the modal's `show()`** — not in `onMounted`, not on close. FormModal components mount together with their IndexView, so `onMounted` fires a request on every page visit even if the modal is never opened.
+- Don't `await` it in `show()` — open the modal immediately; the select shows `:loading="store.lookup.loading"`.
+- Build options with a `computed` over `store.lookup.items` — never copy them into a local `ref`.
+- `useCrud`/`withFile` invalidate their own `lookup` after create/update/remove, so the next `load()` refetches. Only call `lookup.invalidate()` yourself when data changes through a custom endpoint.
+- Remote search (`lookup.search(q)`) sends `?search=q&page=1&page_size=20` and aborts the previous request; `FormSelect` debounces 300 ms. The backend handler must read the `search` query param.
+- Edit mode with remote search: pass the currently selected items as `:initial-options` so their labels render before any search.
+
+**`FormSelect` props** (same names as `@vueform/multiselect`):
+
+| Prop | Default | Meaning |
+|---|---|---|
+| `options` | `[]` | Array, **or** async loader `(query) => Promise<TSelectOption[]>` |
+| `delay` | `-1` | Async loader: `-1` = load once, filter on the client; `>= 0` = call loader per search, debounced N ms |
+| `minChars` | `0` | Server search: min characters before calling the loader |
+| `resolveOnLoad` | `true` | Async: call loader with `''` on mount (`false` = wait until the dropdown opens) |
+| `filterResults` | `true` | Client-side filtering — set `false` for server search |
+| `searchable` | `false` | Show the search input (forced on when `delay >= 0`) |
+| `creatable` | `false` | Allow creating an option from the typed text |
+| `initialOptions` | `[]` | Async only: labels for values already selected (edit form) |
+| `mode` | `'single'` | `'single'` \| `'multiple'` \| `'tags'` |
+
+FormSelect itself guarantees: only the newest async response is applied, and selected values keep their label. `lookup.search()` caches results per query, so reopening a modal (its content re-mounts) does not refetch.
+
+**List pages:**
+- `useCrud.fetchAll()` aborts the previous list request (fast pagination clicks never show a stale page) and steps back one page when the current page becomes empty after a delete.
+- Call `fetchAll()` once in the IndexView's `onMounted`; `create`/`update`/`remove` already refetch — never call `fetchAll()` again after them.
+
+**Files:**
+- `uploadFile()` caches per `File` object, so retrying a submit after a 422 does not re-upload. `withFile` uploads all file fields in parallel. Don't call `/upload` manually.
+
+**Never:**
+- Fetch inside a `watch` on modal visibility, or in both `onMounted` and `show()`.
+- Fetch the same list in two components — put it in the store and share it.
+- Write your own debounce/abort for selects — use `FormSelect` async `options` + `lookup.search`.
 
 ---
 
@@ -450,7 +552,9 @@ async function handleSubmit() {
     if (isEdit.value) await store.update(store.form.id)
     else await store.create()
     close() // only reached on success
-  } catch {} // error already handled by axios interceptor
+  } catch {
+    // error already shown by the axios interceptor; keep the modal open
+  }
 }
 ```
 
@@ -547,6 +651,13 @@ Use `index.ts` files for cleaner imports. `references/barrel.ts` shows the **pat
 | Manual CRUD logic in stores          | `useCrud` composable                           |
 | Duplicate file upload logic          | `withFile` HOF                                 |
 | `createEntity`/`updateEntity` naming | `create`/`update` or `createForm`/`updateForm` |
+| `fetchAllXxx()` for select options   | `store.lookup.load()` (cached)                 |
+| Load select options in `onMounted`   | `store.lookup.load()` in modal `show()`        |
+| Copy options into a local `ref([])`  | `computed` over `store.lookup.items`           |
+| Load thousands of rows into a select | async `:options` + `:delay` + `lookup.search`  |
+| Component import before `vue`        | vue → packages → `@/` → `./` → `import type`   |
+| `import { IUser } from …` (value)    | `import type { IUser } from …`                 |
+| Empty `catch {}`                     | `catch { // reason }`                          |
 
 ---
 
@@ -554,7 +665,9 @@ Use `index.ts` files for cleaner imports. `references/barrel.ts` shows the **pat
 
 - [ ] Component uses `<script setup lang="ts">`
 - [ ] Props/Emits use TypeScript syntax
-- [ ] Store uses `useCrud` composable (or `withFile` for uploads)
+- [ ] Store type chosen with the "When to use `useCrud`" table
+- [ ] Imports follow the Import Order table (barrels in pages/components, `import type` for types)
+- [ ] Select options use `store.lookup` (loaded in `show()`, cached) or async `:options` + `:delay` for large data
 - [ ] Store naming: singular file, `useXxxStore` function, `'xxx'` ID
 - [ ] Interfaces prefixed with `I`, types with `T`
 - [ ] Types grouped in `types.ts` per component folder
@@ -564,4 +677,5 @@ Use `index.ts` files for cleaner imports. `references/barrel.ts` shows the **pat
 - [ ] Responsive: `sm` and `md` breakpoints implemented
 - [ ] CRUD buttons protected with `usePermission` composable
 - [ ] Lint clean: `yarn lint`
+- [ ] Type check clean: `yarn vue-tsc --noEmit`
 - [ ] Format clean: `yarn format`

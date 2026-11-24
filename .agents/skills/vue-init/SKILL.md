@@ -1,6 +1,6 @@
 ---
 name: vue-init
-description: Initialize a new Vue project from the boilerplate template
+description: Create/bootstrap a NEW frontend project from the reshap0318/boilerplate-vue template (clone, detach git, rename, .env, install, build). Use when the user wants to start a new Vue/frontend app, "init project baru", "setup FE", "pakai boilerplate vue", or create a frontend folder (fe/, web/, frontend/) for a backend. Not for adding features to an existing project — use vue-development-guide for that.
 ---
 
 ## Role
@@ -63,4 +63,4 @@ Update the following files to match the new project:
 - Run `yarn install` to install all dependencies.
 - Run `yarn build` to verify the project builds successfully.
 - Inform the user that the project is ready.
-- Direct them to use skill `@vue-development-guide` to start implementing features.
+- Direct them to the `vue-development-guide` skill (with `vue-coding-rules`) to start implementing features. Those skills were removed from the new project in Step 4, so they must be available globally (`~/.claude/skills/`) or copied back from the boilerplate repo if the user wants them in the project.

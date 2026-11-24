@@ -1,27 +1,23 @@
 <script setup lang="ts">
+import { computed, ref } from 'vue'
+import useVuelidate from '@vuelidate/core'
+import { minLength } from '@vuelidate/validators'
 import {
-  UiModal,
+  FormAvatar,
   FormInput,
   FormPassword,
   FormSelect,
-  FormAvatar,
   UiButton,
+  UiModal,
 } from '@/components/utils'
-import { computed, ref, onMounted } from 'vue'
-import useVuelidate from '@vuelidate/core'
-import { useUserStore } from '@/stores/user'
-import { useRoleStore } from '@/stores/role'
-import type { IRole } from '@/stores/role'
-import { minLength } from '@vuelidate/validators'
-import { useFormError } from '@/composables/useFormError'
+import { useFormError } from '@/composables'
+import { useRoleStore, useUserStore } from '@/stores'
 
 const userStore = useUserStore()
 const roleStore = useRoleStore()
 const formError = useFormError()
 const isVisible = ref(false)
 const isEdit = computed(() => !!userStore.form.id)
-const allRoles = ref<IRole[]>([])
-const rolesLoading = ref(false)
 const currentAvatar = ref<string | null>(null)
 
 const dynamicRules = computed(() => {
@@ -36,22 +32,11 @@ const dynamicRules = computed(() => {
 
 const v$ = useVuelidate(dynamicRules, userStore.form)
 
-const roleOptions = computed(() => {
-  return allRoles.value.map((role) => ({
-    value: role.id,
-    label: role.name,
-  }))
-})
-
-async function loadRoles() {
-  if (allRoles.value.length > 0) return
-  rolesLoading.value = true
-  try {
-    allRoles.value = await roleStore.fetchAllRoles()
-  } finally {
-    rolesLoading.value = false
-  }
-}
+// Roles are cached in the role store: fetched on the first modal open only,
+// refetched automatically after a role is created/updated/deleted.
+const roleOptions = computed(() =>
+  roleStore.lookup.items.map((role) => ({ value: role.id, label: role.name })),
+)
 
 async function show(data?: {
   id?: number
@@ -60,6 +45,7 @@ async function show(data?: {
   avatar?: string | null
   roles?: { id: number }[]
 }) {
+  roleStore.lookup.load() // no request if already cached
   if (data) {
     userStore.form.id = data.id
     userStore.form.name = data.name
@@ -70,13 +56,7 @@ async function show(data?: {
     userStore.form.avatar = null
     currentAvatar.value = data.avatar || null
   } else {
-    userStore.form.id = undefined
-    userStore.form.name = ''
-    userStore.form.email = ''
-    userStore.form.password = ''
-    userStore.form.password_confirmation = ''
-    userStore.form.roles = []
-    userStore.form.avatar = null
+    userStore.resetForm()
     currentAvatar.value = null
   }
   v$.value.$reset()
@@ -99,12 +79,10 @@ async function handleSubmit() {
       await userStore.create()
     }
     close()
-  } catch {}
+  } catch {
+    // error already shown by the axios interceptor; keep the modal open
+  }
 }
-
-onMounted(() => {
-  loadRoles()
-})
 
 defineExpose({ show, close })
 </script>
@@ -161,7 +139,7 @@ defineExpose({ show, close })
           placeholder="Pilih role..."
           mode="tags"
           :searchable="true"
-          :loading="rolesLoading"
+          :loading="roleStore.lookup.loading"
         />
       </div>
 

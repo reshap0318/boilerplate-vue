@@ -1,9 +1,12 @@
 // ============================================================
 // Store with File Upload (using withFile HOF)
+// withFile uploads all file fields in parallel and never re-uploads the same File
+// on retry. Use createForm/updateForm instead of create/update.
 // ============================================================
 import { defineStore } from 'pinia'
-import { required, email, minLength, helpers, requiredIf } from '@vuelidate/validators'
-import { useCrud, withFile } from '@/composables'
+import { email, helpers, minLength, required, requiredIf } from '@vuelidate/validators'
+import { useCrud } from '@/composables/useCrud'
+import { withFile } from '@/composables/withFile'
 
 export interface IUser {
   id: number

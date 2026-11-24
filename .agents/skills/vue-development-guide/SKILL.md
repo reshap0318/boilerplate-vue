@@ -1,102 +1,91 @@
 ---
 name: vue-development-guide
-description: Step-by-step development workflow and CRUD implementation guide for Vue project — from planning to push. Use when creating new features, implementing CRUD operations, or when user mentions stores, components, composables, or routes.
+description: Step-by-step workflow for adding a feature/page/menu to this Vue boilerplate — choose store type (useCrud or custom), then Store → IndexView → FormModal → Route → Sidebar → Barrel → lint/type-check/build. Use whenever the user asks to create a new feature, module, page, menu, CRUD, master data, or "halaman/fitur/menu/modul baru", "buat CRUD", "tambah menu", or asks how to use/extend this project. Pair with the vue-coding-rules skill for code conventions.
 ---
 
 ## When to use me
 
-Use this skill when:
-- Implementing a new CRUD feature from scratch (Store → View → Form → Route → Sidebar)
-- Following the mandatory development workflow
-- You need a pre-push checklist before committing code
+- Implementing a new feature from scratch (CRUD or not)
+- The user asks "how do I add X to this project?" / "cara pakai boilerplate ini"
+- You need the pre-push checklist
 
-> 💡 **If `vue-coding-rule` skill is available**, use it for coding conventions, component patterns, and full code examples. This guide focuses on workflow and implementation order.
+> Coding conventions, full code examples, import order, and API-call rules live in the **`vue-coding-rules`** skill — load it too. This guide is the order of work.
 
 ---
 
 # Vue Development Guide
 
-## 🛠️ CRUD Implementation Flow
+## Step 0: Decide the store type (do this first)
 
-### 📋 Step-by-Step Order
-Every new CRUD feature MUST follow this order:
+Answer from the backend endpoints of the feature:
+
+```
+Does the feature create + update + delete ONE resource via /x and /x/:id ?
+├─ yes → useCrud                     (stores/role.ts)
+│        has file/image fields?  → + withFile   (stores/user.ts)
+│        extra endpoints (/x/:id/approve)? → add functions next to ...crud
+└─ no  → custom store                (stores/permission.ts, profile.ts, notification.ts)
+         is it needed as select options elsewhere? → add useLookup to it
+```
+
+Also list which **select/dropdown** fields the form needs and where their data comes from:
+- Source resource already has a store → use `thatStore.lookup` (never write `fetchAllXxx()`).
+- Small dataset (< ~200) → `lookup.load()` in the modal's `show()` + `FormSelect searchable`.
+- Large dataset → `FormSelect` async `:options="(q) => store.lookup.search(q).then(toOptions)"` + `:delay="300"` + `:filter-results="false"` (backend must support `?search=`).
+
+Full table: `vue-coding-rules` → "When to use `useCrud`" and "API Call Rules".
+
+---
+
+## CRUD Implementation Flow
 
 | Step | Layer | File Path | Purpose |
 |------|-------|-----------|---------|
-| 1 | Store | `src/stores/{feature}.ts` | Pinia store with `useCrud` + `withFile` |
-| 2 | View | `src/pages/{feature}/IndexView.vue` | List page with table/grid + pagination + permission-guarded action buttons |
-| 3 | Form/Modal | `src/pages/{feature}/FormModal.vue` | Create/Edit form with validation |
-| 4 | Route | `src/router/index.ts` | Register route with auth + permission guard |
-| 5 | Sidebar | `src/layouts/DefaultLayout.vue` | Add menu item to sidebar |
-| 6 | Barrel Exports | `src/stores/index.ts` | Export store + types |
+| 0 | Decide | — | Store type + select sources (above) |
+| 1 | Store | `src/stores/{feature}.ts` | Pinia store (`useCrud` / `withFile` / custom) |
+| 2 | View | `src/pages/{feature}/IndexView.vue` | List + pagination + permission-guarded buttons |
+| 3 | Form/Modal | `src/pages/{feature}/FormModal.vue` | Create/Edit form with Vuelidate + selects |
+| 4 | Route | `src/router/index.ts` | Lazy route with `requiresAuth` + `permissions` |
+| 5 | Sidebar | `src/layouts/DefaultLayout.vue` | Menu item with matching `permission` |
+| 6 | Barrel | `src/stores/index.ts` | Export store + types |
+| 7 | Verify | — | `yarn lint`, `yarn vue-tsc --noEmit`, `yarn build` |
 
-> For coding rules (naming, component structure, validation, styling), see `vue-coding-rule` skill.
+### Step 1: Store — `src/stores/{feature}.ts`
+Singular file name, `use{Feature}Store`, id `'{feature}'`. Inside stores import files directly (`@/composables/useCrud`), not barrels. Reference: `vue-coding-rules/references/store-crud.ts`, `store-with-file.ts`, `store-custom.ts`.
 
----
+### Step 2: View — `src/pages/{feature}/IndexView.vue`
+Call `store.fetchAll()` once in `onMounted`; pagination calls `fetchAll(page)`. Don't refetch after create/update/delete — the store already does. Guard buttons with `usePermission`. Reference: `references/component.vue`.
 
-### Step 1: Store
+### Step 3: Form/Modal — `src/pages/{feature}/FormModal.vue`
+- `show()`: call `otherStore.lookup.load()` (not awaited) for every select source, fill/reset the form, `v$.value.$reset()`, `formError.clear()`.
+- No `onMounted` data loading in FormModal.
+- `handleSubmit`: validate → create/update → `close()` only on success; `catch { // comment }`.
+Reference: `references/form-modal.vue`.
 
-**File:** `src/stores/{feature}.ts`
+### Step 4: Route — `src/router/index.ts`
+Child of the `DefaultLayout` route, lazy `component: () => import(...)`, plural kebab-case path, `meta: { requiresAuth: true, permissions: ['{feature}.index'] }`.
 
-Create Pinia store with `useCrud` composable. Add `withFile` HOF if file upload needed. See `vue-coding-rule` for full patterns.
+### Step 5: Sidebar — `src/layouts/DefaultLayout.vue`
+Add to the `menuItems` computed; `permission` must equal the route's `permissions`.
 
----
-
-### Step 2: View Component
-
-**File:** `src/pages/{feature}/IndexView.vue`
-
-Create list page with data table/grid, pagination, search, and action buttons (Create, Edit, Delete). Call store's `fetchAll()` on mount. Protect action buttons with `usePermission` if required — see `vue-coding-rule` for the pattern.
-
----
-
-### Step 3: Form/Modal Component
-
-**File:** `src/pages/{feature}/FormModal.vue`
-
-Create modal form for Create/Edit. Use Vuelidate for validation. Two patterns are mandatory — see `vue-coding-rule` for the full code:
-- Call `formError.clear()` inside `show()` every time the modal opens
-- Call `close()` only on success inside `handleSubmit`, never in `finally`
-
----
-
-### Step 4: Route
-
-**File:** `src/router/index.ts`
-
-Register route under the authenticated layout with lazy loading. Use plural kebab-case URL (e.g., `/users`, `/uam/roles`). Add `requiresAuth: true` and `permissions: ['feature.index']` meta — see `vue-coding-rule` for the full pattern.
-
----
-
-### Step 5: Sidebar
-
-**File:** `src/layouts/DefaultLayout.vue`
-
-Add a new item to the `menuItems` computed array. Set `permission` to match the route's `permissions` meta value — items are filtered automatically. See `vue-coding-rule` for flat vs grouped item patterns.
-
----
-
-### Step 6: Barrel Exports
-
-**File:** `src/stores/index.ts`
-
-Export the new store and its types from the barrel file for clean imports.
+### Step 6: Barrel — `src/stores/index.ts`
+`export { use{Feature}Store } from './{feature}'` + `export type { I{Feature}, I{Feature}Payload } from './{feature}'`. Same for any new composable/UI component in its own barrel.
 
 ---
 
 ## ✅ Pre-Push Checklist
-- [ ] Store uses `useCrud` composable (or `withFile` for uploads)
-- [ ] Store naming: singular file, `useXxxStore` function, `'xxx'` ID
-- [ ] View uses `<script setup lang="ts">`
-- [ ] Props/Emits use TypeScript syntax
-- [ ] Form uses Vuelidate with `await v$.value.$validate()` before submit
-- [ ] `formError.clear()` called in modal `show()` method
-- [ ] `handleSubmit` calls `close()` only on success, not in `finally`
-- [ ] Route registered with `requiresAuth: true` and `permissions: [...]`
-- [ ] Action buttons (Create/Edit/Delete) protected with `usePermission` if required — see `vue-coding-rule`
-- [ ] Sidebar menu item added to `DefaultLayout.vue` with matching `permission`
-- [ ] Barrel exports updated for new store
-- [ ] Responsive: `sm` and `md` breakpoints implemented
-- [ ] Lint clean: `yarn lint`
-- [ ] Format clean: `yarn format`
-- [ ] Build success: `yarn build`
+- [ ] Store type chosen via Step 0 (no `useCrud` on read-only/singleton data; no hand-written CRUD when `useCrud` fits)
+- [ ] No `fetchAllXxx()` for dropdowns — selects use `store.lookup` (or async `:options` + `:delay` for large data)
+- [ ] Select sources loaded in `show()`, not `onMounted`
+- [ ] Import order: vue → packages → `@/` → `./` → `import type`; barrels in pages/components
+- [ ] Store naming: singular file, `useXxxStore`, `'xxx'` id
+- [ ] `<script setup lang="ts">`, typed props/emits
+- [ ] Vuelidate `await v$.value.$validate()` before submit; `formError.clear()` in `show()`
+- [ ] `close()` only on success, never in `finally`
+- [ ] Route has `requiresAuth: true` + `permissions`; sidebar `permission` matches
+- [ ] Buttons guarded with `usePermission`
+- [ ] Barrel exports updated
+- [ ] Responsive: `sm` and `md` breakpoints
+- [ ] `yarn lint` clean
+- [ ] `yarn vue-tsc --noEmit` clean
+- [ ] `yarn build` succeeds

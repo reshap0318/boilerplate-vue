@@ -125,8 +125,10 @@ export interface FormPasswordProps {
 }
 
 // FormSelect types
+export type TSelectValue = string | number
+
 export interface TSelectOption {
-  value: string | number
+  value: TSelectValue
   label: string
   [key: string]: any
 }
@@ -141,7 +143,13 @@ export interface FormSelectProps {
   modelValue: any
   name?: string
   label?: string
-  options?: TSelectOption[] | string[]
+  /**
+   * Static list, or an async loader `(query) => Promise<TSelectOption[]>`
+   * (see `delay` for how the loader is called).
+   */
+  options?: TSelectOption[] | string[] | ((query: string) => Promise<TSelectOption[]>)
+  /** Async mode only: labels for values that are already selected (edit form). */
+  initialOptions?: TSelectOption[]
   placeholder?: string
   validation?: object
   searchable?: boolean
@@ -149,6 +157,19 @@ export interface FormSelectProps {
   closable?: boolean
   disabled?: boolean
   loading?: boolean
+  /** Allow creating a new option from the typed text. */
+  creatable?: boolean
+  /**
+   * Async loader mode. -1 (default) = load once, then filter on the client.
+   * >= 0 = call the loader on every search, debounced by this many ms (server search).
+   */
+  delay?: number
+  /** Server search: minimum characters before the loader is called. Default 0. */
+  minChars?: number
+  /** Async: call the loader with '' on mount. false = wait until the dropdown opens. */
+  resolveOnLoad?: boolean
+  /** Client-side filtering of options by the search text. Set false for server search. */
+  filterResults?: boolean
   classes?: FormSelectClasses
 }
 

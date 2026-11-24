@@ -1,3 +1,8 @@
+/** "2026-11-24" → "24 Nov 2026" (short) / "24 November 2026" (long) */
+export function formatDate(date: string | Date, month: 'short' | 'long' = 'short'): string {
+  return new Date(date).toLocaleDateString('id-ID', { day: 'numeric', month, year: 'numeric' })
+}
+
 export function formatTimeForHuman(dateString: string): string {
   const date = new Date(dateString)
   const now = new Date()
@@ -10,5 +15,5 @@ export function formatTimeForHuman(dateString: string): string {
   if (diffMins < 60) return `${diffMins} menit yang lalu`
   if (diffHours < 24) return `${diffHours} jam yang lalu`
   if (diffDays < 7) return `${diffDays} hari yang lalu`
-  return date.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })
+  return formatDate(date)
 }

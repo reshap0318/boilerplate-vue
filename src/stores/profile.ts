@@ -108,8 +108,6 @@ export const useProfileStore = defineStore('profile', () => {
       form.avatar = null
 
       swal.success('Berhasil', 'Profile berhasil diperbarui.')
-    } catch (error: any) {
-      throw error
     } finally {
       loading.value.Update = false
     }

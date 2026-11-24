@@ -1,15 +1,15 @@
 <script setup lang="ts">
+import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import Multiselect from '@vueform/multiselect'
 import FormError from './FormError.vue'
-import type { FormSelectProps, TSelectOption } from './types'
-
-import { computed } from 'vue'
 import type { ValidationLike } from '@/helpers/vuelidate'
+import type { FormSelectProps, TSelectOption, TSelectValue } from './types'
 
 const props = withDefaults(defineProps<FormSelectProps>(), {
   name: '',
   label: '',
   options: () => [],
+  initialOptions: () => [],
   placeholder: 'Select...',
   validation: undefined,
   searchable: false,
@@ -17,6 +17,11 @@ const props = withDefaults(defineProps<FormSelectProps>(), {
   closable: true,
   disabled: false,
   loading: false,
+  creatable: false,
+  delay: -1,
+  minChars: 0,
+  resolveOnLoad: true,
+  filterResults: true,
   classes: () => ({}),
 })
 
@@ -32,6 +37,81 @@ const internalValue = computed({
     emit('change', value)
   },
 })
+
+// ---------------------------------------------------------------------------
+// Async options — `options` given as a function `(query) => Promise<TSelectOption[]>`
+// Same prop semantics as @vueform/multiselect, plus two guarantees the native async
+// mode lacks:
+//   1. Only the latest request's result is applied (no stale/out-of-order results).
+//   2. Selected values keep their label even when absent from the latest results
+//      (labels are remembered; seed them with `initialOptions` in edit mode).
+//
+//   delay = -1  → load ONCE (on mount if resolveOnLoad, else on first open), then
+//                 filter on the client.
+//   delay >= 0  → query the server on each search, debounced by `delay` ms, once the
+//                 query has `minChars` characters. Use with :filter-results="false".
+// ---------------------------------------------------------------------------
+type TOptionsFn = (query: string) => Promise<TSelectOption[]>
+
+const isAsync = computed(() => typeof props.options === 'function')
+const isSearchMode = computed(() => isAsync.value && props.delay >= 0)
+const asyncResults = ref<TSelectOption[]>([])
+const asyncLoading = ref(false)
+const labelCache = reactive(new Map<TSelectValue, TSelectOption>())
+let hasResolved = false
+let debounceTimer: ReturnType<typeof setTimeout> | undefined
+let requestId = 0
+
+function remember(list: readonly (TSelectOption | string)[]) {
+  list.forEach((o) => typeof o === 'object' && labelCache.set(o.value, o))
+}
+
+watch(() => props.initialOptions, remember, { immediate: true })
+
+// Async: latest results + selected values missing from them (so their label stays visible)
+const displayOptions = computed<TSelectOption[] | string[]>(() => {
+  if (!isAsync.value) return props.options as TSelectOption[] | string[]
+  const merged = new Map(asyncResults.value.map((o) => [o.value, o]))
+  const selected = props.mode === 'single' ? [props.modelValue] : (props.modelValue ?? [])
+  for (const value of selected as TSelectValue[]) {
+    const option = labelCache.get(value)
+    if (option && !merged.has(value)) merged.set(value, option)
+  }
+  return [...merged.values()]
+})
+
+async function resolveOptions(query = '') {
+  if (!isAsync.value || query.length < props.minChars) return
+  hasResolved = true
+  const current = ++requestId
+  asyncLoading.value = true
+  try {
+    const results = await (props.options as TOptionsFn)(query)
+    if (current !== requestId) return // a newer request already started
+    remember(results)
+    asyncResults.value = results
+  } catch {
+    // aborted or failed — real errors are shown by the axios interceptor
+  } finally {
+    if (current === requestId) asyncLoading.value = false
+  }
+}
+
+function onSearchChange(query: string) {
+  if (!isSearchMode.value) return
+  clearTimeout(debounceTimer)
+  debounceTimer = setTimeout(() => resolveOptions(query), props.delay)
+}
+
+function onOpen() {
+  if (isAsync.value && !hasResolved) resolveOptions('')
+}
+
+onMounted(() => {
+  if (isAsync.value && props.resolveOnLoad) resolveOptions('')
+})
+
+onBeforeUnmount(() => clearTimeout(debounceTimer))
 </script>
 
 <template>
@@ -45,18 +125,22 @@ const internalValue = computed({
 
     <Multiselect
       v-model="internalValue"
-      :options="props.options as TSelectOption[]"
+      :options="displayOptions"
       :placeholder="props.placeholder"
-      :searchable="props.searchable"
+      :searchable="props.searchable || isSearchMode"
+      :filter-results="props.filterResults"
+      :create-option="props.creatable"
       :mode="props.mode"
       :closable="props.closable"
       :disabled="props.disabled"
-      :loading="props.loading"
+      :loading="props.loading || asyncLoading"
       :caret="true"
       :append-to-body="true"
       :value-prop="'value'"
       :track-by="'label'"
       :label="'label'"
+      @search-change="onSearchChange"
+      @open="onOpen"
       :classes="{
         container: 'multiselect',
         containerDisabled: 'is-disabled',
